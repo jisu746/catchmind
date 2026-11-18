@@ -159,7 +159,7 @@ public class CatchLobbyView extends JFrame {
             } else if (e.getSource() == btnLeave) {
 
             	cancelCountdown();
-
+            	//username, selectedProfile전달
                 CatchClientMain view = new CatchClientMain();
                 view.setVisible(true);
                 dispose();

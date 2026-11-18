@@ -106,7 +106,6 @@ public class CatchProfileView extends JFrame {
                 return;
             }
             
-            //대기실 이동, 아직 데이터 전달은 구현 안함(화면만 전환)
             CatchLobbyView view = new CatchLobbyView(username, selectedProfile, ip_addr, port_no);
             setVisible(false);
         }

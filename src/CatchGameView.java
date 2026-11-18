@@ -8,6 +8,9 @@ import javax.swing.JTextField;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 
+//추후 삭제
+import javax.swing.JButton;
+
 public class CatchGameView extends JFrame {
 
     private JPanel contentPane;
@@ -84,6 +87,17 @@ public class CatchGameView extends JFrame {
         txtChat.setBounds(780, 505, 275, 40);
         contentPane.add(txtChat);
 
+        //-----------임시버튼 추후삭제------------
+        JButton btnRanking = new JButton("랭킹 보기");
+        btnRanking.setBounds(780, 560, 275, 35);
+        contentPane.add(btnRanking);
+
+        btnRanking.addActionListener(e -> {
+            CatchRankingView view = new CatchRankingView();
+            setVisible(false);
+            dispose();
+        });
+        //-----------------------------------
         setVisible(true);
     }
 }
