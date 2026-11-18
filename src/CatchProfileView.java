@@ -1,17 +1,26 @@
-//프로필 이미지 선택화면
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Image;
+import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.BorderFactory;
 
 public class CatchProfileView extends JFrame {
 
+	// ---화면 단독 테스트용 (추후 삭제)---
+	public static void main(String[] args) {
+	    new CatchProfileView("테스트유저", "127.0.0.1", "9999");
+	}
+	//-------------------------------
+	
     private JPanel contentPane;
     private JButton[] profileButtons = new JButton[4];
     private JButton btnJoin;
@@ -34,25 +43,66 @@ public class CatchProfileView extends JFrame {
         setBounds(100, 100, 400, 550);
         setLocationRelativeTo(null);
 
-        contentPane = new JPanel();
+        //배경 이미지
+        contentPane = new JPanel() {
+            private Image background = new ImageIcon(
+                    getClass().getResource(
+                            "/images/selectcharacter-panel.png")
+            ).getImage();
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.drawImage(background, 0, 0,
+                        getWidth(), getHeight(), this);
+            }
+        };
+
         contentPane.setLayout(null);
         setContentPane(contentPane);
 
-        JLabel lblTitle = new JLabel("프로필 선택");
-        lblTitle.setFont(new Font("맑은 고딕", Font.BOLD, 26));
-        lblTitle.setBounds(40, 30, 300, 50);
+        //프로필 선택 제목 이미지
+        ImageIcon titleIcon = new ImageIcon(
+                getClass().getResource("/images/selectcharacter.png")
+        );
+
+        Image titleImage = titleIcon.getImage().getScaledInstance(
+                240, 84, Image.SCALE_REPLICATE
+        );
+
+        JLabel lblTitle = new JLabel(new ImageIcon(titleImage));
+        lblTitle.setBounds(80, 20, 240, 84);
         contentPane.add(lblTitle);
 
-        //프로필 선택 버튼 4개(추후 프로필 이미지로 바꿔주세용)
+        //캐릭터 선택칸 이미지
+        ImageIcon boxIcon = new ImageIcon(
+                getClass().getResource("/images/chcracter-box.png")
+        );
+
+        Image boxImage = boxIcon.getImage().getScaledInstance(
+                140, 120, Image.SCALE_REPLICATE
+        );
+
+        //프로필 선택 버튼 4개
         for (int i = 0; i < 4; i++) {
 
-            JButton button = new JButton("프로필 " + (i + 1));
+            ImageIcon characterIcon = new ImageIcon(
+                    getClass().getResource(
+                            "/images/chracter" + (i + 1) + ".png")
+            );
+
+            Image characterImage = characterIcon.getImage().getScaledInstance(
+                    65, 95, Image.SCALE_REPLICATE
+            );
+
+            JButton button = new JButton(new ImageIcon(characterImage));
 
             int x = 40 + (i % 2) * 160;
             int y = 120 + (i / 2) * 150;
 
             button.setBounds(x, y, 140, 120);
-            button.setBackground(new Color(206, 148, 198));
+            button.setContentAreaFilled(false);
+            button.setBorderPainted(false);
             button.setFocusPainted(false);
 
             final int profileNumber = i + 1;
@@ -66,13 +116,52 @@ public class CatchProfileView extends JFrame {
 
             profileButtons[i] = button;
             contentPane.add(button);
-            
+
+            //캐릭터 선택칸 장식 이미지
+            JLabel lblBox = new JLabel(new ImageIcon(boxImage));
+            lblBox.setBounds(x, y, 140, 120);
+            contentPane.add(lblBox);
+
+            //버튼보다 뒤에 배치
+            contentPane.setComponentZOrder(
+                    lblBox, contentPane.getComponentCount() - 1
+            );
+
             setVisible(true);
         }
 
+        //게임 참여 버튼(아직 이미지로 못바꿨습니다 뒤로미룸)
+      //게임 참여 버튼 배경 이미지
+        ImageIcon joinIcon = new ImageIcon(
+                getClass().getResource("/images/join-button.png")
+        );
+
+        //게임 참여 글자 이미지
+        ImageIcon joinTextIcon = new ImageIcon(
+                getClass().getResource("/images/게임 참여.png")
+        );
+
         //게임 참여 버튼
-        btnJoin = new JButton("게임 참여");
-        btnJoin.setBounds(40, 440, 300, 45);
+        btnJoin = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+
+                //배경 이미지
+                g.drawImage(joinIcon.getImage(), 0, 0,
+                        getWidth(), getHeight(), this);
+
+                //글자 이미지 중앙 배치
+                int x = (getWidth() - joinTextIcon.getIconWidth()) / 2;
+                int y = (getHeight() - joinTextIcon.getIconHeight()) / 2;
+
+                g.drawImage(joinTextIcon.getImage(), x, y, this);
+            }
+        };
+
+        btnJoin.setBounds(40, 410, 300, 45);
+        btnJoin.setContentAreaFilled(false);
+        btnJoin.setBorderPainted(false);
+        btnJoin.setFocusPainted(false);
         contentPane.add(btnJoin);
 
         btnJoin.addActionListener(new Myaction());
@@ -85,9 +174,13 @@ public class CatchProfileView extends JFrame {
 
         for (int i = 0; i < 4; i++) {
             if (i + 1 == number) {
-                profileButtons[i].setBackground(new Color(163, 78, 154));
+                profileButtons[i].setBorder(
+                        BorderFactory.createLineBorder(
+                                new Color(163, 78, 154), 4)
+                );
+                profileButtons[i].setBorderPainted(true);
             } else {
-                profileButtons[i].setBackground(new Color(206, 148, 198));
+                profileButtons[i].setBorderPainted(false);
             }
         }
     }
@@ -100,13 +193,16 @@ public class CatchProfileView extends JFrame {
 
             if (selectedProfile == -1) {
                 JOptionPane.showMessageDialog(
-                    CatchProfileView.this,
-                    "프로필을 선택해주세요."
+                        CatchProfileView.this,
+                        "프로필을 선택해주세요."
                 );
                 return;
             }
-            
-            CatchLobbyView view = new CatchLobbyView(username, selectedProfile, ip_addr, port_no);
+
+            CatchLobbyView view = new CatchLobbyView(
+                    username, selectedProfile, ip_addr, port_no
+            );
+
             setVisible(false);
         }
     }
