@@ -1,4 +1,4 @@
-
+//해당코드 14주차 JavaChatClientView.java와 거의 동일하니 작업에 참고
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -178,7 +178,7 @@ public class CatchClientMain extends JFrame {
             );
         }
 
-      //다음 버튼 배경 이미지
+        //다음 버튼 배경 이미지
         ImageIcon cardIcon2 = new ImageIcon(
                 getClass().getResource("/images/card2.png")
         );

@@ -13,6 +13,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.BorderFactory;
 
+import java.io.IOException;
+
 public class CatchProfileView extends JFrame {
 
 	// ---화면 단독 테스트용 (추후 삭제)---
@@ -130,7 +132,6 @@ public class CatchProfileView extends JFrame {
             setVisible(true);
         }
 
-        //게임 참여 버튼(아직 이미지로 못바꿨습니다 뒤로미룸)
       //게임 참여 버튼 배경 이미지
         ImageIcon joinIcon = new ImageIcon(
                 getClass().getResource("/images/join-button.png")
@@ -185,9 +186,9 @@ public class CatchProfileView extends JFrame {
         }
     }
 
-    //게임 참여 클릭시 이벤트처리용
-    class Myaction implements ActionListener {
 
+    //게임 참여 클릭시 이벤트 처리
+    class Myaction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
 
@@ -198,12 +199,100 @@ public class CatchProfileView extends JFrame {
                 );
                 return;
             }
+            CatchClient client = CatchClient.getInstance(); //싱글턴 클라이언트객체가져오기
+            //서버 응답 대기 중 중복 클릭 방지
+            btnJoin.setEnabled(false);
 
-            CatchLobbyView view = new CatchLobbyView(
-                    username, selectedProfile, ip_addr, port_no
-            );
+            //서버의 참가 결과를 전달받는 리스너를 클라이언트객체에서 가져와서 오버라이딩
+            client.setJoinListener(new CatchClient.JoinListener() {
+                @Override
+                public void onJoinResult(String msg) {
 
-            setVisible(false);
+                    if (msg.startsWith("/JOIN_OK ")) {
+
+                        //서버에서 배정한 플레이어 ID 저장
+                        int id = Integer.parseInt(
+                                msg.substring("/JOIN_OK ".length()).trim()
+                        );
+
+                        client.setPlayerId(id);
+                        client.setJoinListener(null);
+
+                        //참가 승인 후 대기실 이동
+                        CatchLobbyView view = new CatchLobbyView(
+                                username, selectedProfile, ip_addr, port_no
+                        );
+
+                        setVisible(false);
+
+                    } else if (msg.startsWith("/JOIN_FAIL ")) {
+                        String reason = msg.substring(
+                                "/JOIN_FAIL ".length()
+                        ).trim();
+                        String message;
+                        switch (reason) {
+                            case "FULL":
+                                message = "참여 인원이 가득 찼습니다.";
+                                break;
+                            case "DUPLICATE":
+                                message = "이미 사용 중인 닉네임입니다.";
+                                break;
+                            case "INVALID":
+                                message = "잘못된 참가 요청입니다.";
+                                break;
+                            case "DISCONNECTED":
+                                message = "서버와의 연결이 종료되었습니다.";
+                                break;
+                            default:
+                                message = "게임 참가가 거절되었습니다.";
+                                break;
+                        } //게임참가 실패하면 클라이언트연결 취소
+                        client.setJoinListener(null);
+                        client.disconnect();
+
+                        JOptionPane.showMessageDialog(
+                                CatchProfileView.this,
+                                message
+                        );
+                      //실패하면 메인 화면으로 돌아가기
+                        CatchClientMain main = new CatchClientMain();
+                        main.setVisible(true);
+                        CatchProfileView.this.dispose();
+                    }
+                }
+            });
+            
+            try {
+                int port = Integer.parseInt(port_no.trim());
+
+                client.connect(ip_addr.trim(), port);
+
+                //서버에 참가 요청
+                client.sendMessage(
+                        "/JOIN " + username + " " + selectedProfile
+                );
+
+            } catch (NumberFormatException ex) {
+
+                client.setJoinListener(null);
+                btnJoin.setEnabled(true);
+
+                JOptionPane.showMessageDialog(
+                        CatchProfileView.this,
+                        "포트 번호를 확인해주세요."
+                );
+
+            } catch (IOException ex) {
+
+                client.setJoinListener(null);
+                client.disconnect();
+                btnJoin.setEnabled(true);
+
+                JOptionPane.showMessageDialog(
+                        CatchProfileView.this,
+                        "서버 연결 실패: " + ex.getMessage()
+                );
+            }
         }
-    }
+	}
 }
