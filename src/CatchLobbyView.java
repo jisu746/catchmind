@@ -31,7 +31,10 @@ public class CatchLobbyView extends JFrame {
     private JButton btnLeave;
 
     private JLabel[] lblReady = new JLabel[4];
-
+    //플레이어마다 닉네임, 캐릭터 표시
+    private JLabel[] lblPlayers = new JLabel[4];
+    private JLabel[] lblCharacters = new JLabel[4];
+    
     private boolean ready = false;
     //전원 ready후 카운트다운 디자인용
     private Timer countdownTimer;
@@ -117,22 +120,24 @@ public class CatchLobbyView extends JFrame {
                     75, 110, Image.SCALE_REPLICATE
             );
 
-            JLabel lblCharacter = new JLabel(
-                    new ImageIcon(characterImage)
-            );
+            JLabel lblCharacter = new JLabel(new ImageIcon(characterImage));
+            lblCharacters[i] = lblCharacter;
+            
             lblCharacter.setBounds(x + 42, y + 25, 75, 110);
             contentPane.add(lblCharacter);
 
             //캐릭터 이미지를 선택칸 배경보다 앞에 표시
             contentPane.setComponentZOrder(lblCharacter, 0);
 
-            //표시 이름 임시로 전부 username으로 작성해둠, 서버 연결 후 수정
-            JLabel player = new JLabel(username);
+            //참여한 유저 이름, 처음엔 빈 이름으로 설정
+            JLabel player = new JLabel("");
             player.setHorizontalAlignment(JLabel.CENTER);
             player.setFont(new Font("맑은 고딕", Font.BOLD, 17));
             player.setForeground(new Color(84, 48, 43));
             player.setBounds(x, 330, 160, 30);
             contentPane.add(player);
+            //서버값 도착하면 갱신
+            lblPlayers[i] = player;
 
             lblReady[i] = new JLabel("Wait..");
             lblReady[i].setHorizontalAlignment(JLabel.CENTER);
@@ -140,6 +145,10 @@ public class CatchLobbyView extends JFrame {
             lblReady[i].setForeground(new Color(163, 78, 154));
             lblReady[i].setBounds(x, 365, 160, 30);
             contentPane.add(lblReady[i]);
+            
+            //참가하지 않은 플레이어 칸은 비워둠
+            lblCharacters[i].setVisible(false);
+            lblReady[i].setVisible(false);
         }
 
         //버튼 배경 이미지
@@ -224,7 +233,7 @@ public class CatchLobbyView extends JFrame {
         Myaction action = new Myaction();
         btnReady.addActionListener(action);
         btnLeave.addActionListener(action);
-
+        
         //시작 카운트다운
         lblCountdown = new JLabel("");
         lblCountdown.setHorizontalAlignment(SwingConstants.CENTER);
@@ -233,9 +242,86 @@ public class CatchLobbyView extends JFrame {
         lblCountdown.setBounds(350, 120, 150, 60);
         contentPane.add(lblCountdown);
 
+        CatchClient client = CatchClient.getInstance();
+        //이부분 추가 이해 필요, 대기실 생성 시 리스너를 한 번 등록
+        //이후 /PLAYERS를 수신할 때마다 updatePlayers()가 실행됨
+        //화면 클래스에 대한 의존성 없애기 위함
+        client.setPlayersListener(new CatchClient.PlayersListener() {
+
+            @Override
+            public void onPlayers(String msg) {
+                updatePlayers(msg);
+            }
+        });
+        
         setVisible(true);
     }
 
+
+    //서버에서 전달받은 참가자 목록 화면에 표시
+    //플레이어목록에 변화가 있을때마다 전부 지우고 다시 그리는 방식
+    private void updatePlayers(String msg) {
+        //기존 참가자 표시 초기화
+        for (int i = 0; i < 4; i++) {
+            lblPlayers[i].setText("");
+            lblCharacters[i].setVisible(false);
+            lblReady[i].setVisible(false);
+        }
+        String data = msg.substring("/PLAYERS".length()).trim();
+
+        if (data.isEmpty()) {
+            return;
+        }
+        //플레이어별 정보 분리
+        String[] players = data.split(";");
+
+        for (String player : players) {
+            String[] info = player.split(",");
+            if (info.length != 4) {
+                continue;
+            }
+
+            int id;
+            int profile;
+
+            try {
+                id = Integer.parseInt(info[0]);
+                profile = Integer.parseInt(info[2]);
+            } catch (NumberFormatException e) {
+                continue;
+            }
+
+            if (id < 1 || id > 4 || profile < 1 || profile > 4) {
+                continue;
+            }
+            int index = id - 1;
+            String nickname = info[1];
+
+            //닉네임 표시
+            lblPlayers[index].setText(nickname);
+
+            //플레이어가 선택한 프로필 표시
+            ImageIcon icon = new ImageIcon(
+                    getClass().getResource(
+                            "/images/lobby-chracter" + profile + ".png"
+                    )
+            );
+
+            Image image = icon.getImage().getScaledInstance(
+                    75, 110, Image.SCALE_REPLICATE
+            );
+
+            lblCharacters[index].setIcon(new ImageIcon(image));
+            lblCharacters[index].setVisible(true);
+
+            //준비 상태는 아직 미구현
+            lblReady[index].setText("Wait..");
+            lblReady[index].setVisible(true);
+        }
+        contentPane.repaint();
+    }
+
+    
     //게임시작 카운트다운
     private void startCountdown() {
 
