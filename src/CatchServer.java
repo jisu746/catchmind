@@ -316,6 +316,7 @@ public class CatchServer extends JFrame {
         private int playerId = -1; //서버배정 번호
         private String nickname;
         private int profileNumber;
+        private boolean ready = false; //플레이어 준비 상태
         
         //매개변수로 넘어온 소켓 객체 저장
         public UserService(Socket clientSocket)throws IOException {
@@ -342,6 +343,16 @@ public class CatchServer extends JFrame {
         //프로필 번호 반환
         public int getProfileNumber() {
             return profileNumber;
+        }
+        
+        //준비 상태 반환
+        public boolean isReady() {
+            return ready;
+        }
+
+        //준비 상태 변경
+        public void setReady(boolean ready) {
+            this.ready = ready;
         }
 
         //플레이어 정보 저장
@@ -381,6 +392,7 @@ public class CatchServer extends JFrame {
                         	return;
                         	
                         case "/READY":
+                        	protocol.handleReady(this, msg);
                         	break;
                         	
                         default:

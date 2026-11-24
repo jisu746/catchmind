@@ -5,6 +5,7 @@ import java.util.Vector;
 public class CatchProtocol {
 	private CatchServer server;
     private Vector<CatchServer.UserService> joinedUsers;
+    private boolean countdownStarted = false;
 
     //서버의 참가자 목록을 전달받음
     public CatchProtocol(CatchServer server,
@@ -122,6 +123,11 @@ public class CatchProtocol {
     	StringBuilder sb = new StringBuilder("/PLAYERS ");
     	
     	synchronized (joinedUsers) {
+    		countdownStarted = false;
+    		//참가자 목록이 변경되면 전원 준비 취소
+    		for (CatchServer.UserService player : joinedUsers) {
+    		    player.setReady(false);
+    		}
     		for (CatchServer.UserService player : joinedUsers) {
     			if (sb.length() > "/PLAYERS ".length()) {
                     sb.append(";");
@@ -145,5 +151,78 @@ public class CatchProtocol {
             }
     	}
     }
+    
+
+    //플레이어 준비 상태 변경
+    public void handleReady(CatchServer.UserService user, String msg) {
+        String[] args = msg.split(" ");
+
+        //준비 상태는 0 또는 1만 허용
+        if (args.length != 2) {
+            return;
+        }
+        if (!args[1].equals("0") && !args[1].equals("1")) {
+            return;
+        }
+
+        boolean ready = args[1].equals("1");
+
+        synchronized (joinedUsers) {
+            //참가 승인된 사용자만 준비 가능
+            if (!joinedUsers.contains(user)) {
+                return;
+            }
+
+            //서버에 준비 상태 저장
+            user.setReady(ready);
+
+            String updateMsg = "/READY_UPDATE "
+                    + user.getPlayerId() + " " + args[1];
+
+            //전체 참가자에게 준비 상태 전송
+            for (CatchServer.UserService player : joinedUsers) {
+                try {
+                    player.sendMessage(updateMsg);
+                } catch (IOException e) {
+                    server.AppendText("준비 상태 전송 실패: "
+                            + player.getNickname());
+                }
+            }
+            
+          //준비 취소시 시작 상태 초기화
+            if (!ready) {
+                countdownStarted = false;
+            }
+
+            //들어온 참가자가 모두 준비했는지 확인
+            boolean allReady = !joinedUsers.isEmpty();
+
+            for (CatchServer.UserService player : joinedUsers) {
+                if (!player.isReady()) {
+                    allReady = false;
+                    break;
+                }
+            }
+
+            //모두 준비 완료시 게임 시작
+            if (allReady && !countdownStarted) {
+                countdownStarted = true;
+                for (CatchServer.UserService player : joinedUsers) {
+                    try {
+                        player.sendMessage("/GAME_START");
+                    } catch (IOException e) {
+                        server.AppendText("GAME_START 전송 실패");
+                    }
+                }
+            }
+        }
+        
+   
+        
+        server.AppendText("준비 상태 변경: "
+                + user.getNickname()
+                + " / " + (ready ? "Ready" : "Wait"));
+    }
+
 
 }

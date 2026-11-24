@@ -190,7 +190,7 @@ public class CatchLobbyView extends JFrame {
         contentPane.add(btnLeave);
 
         //준비 완료 버튼
-        btnReady = new JButton("준비완료!") {
+        btnReady = new JButton("준비완료") {
             @Override
             protected void paintComponent(Graphics g) {
 
@@ -199,7 +199,7 @@ public class CatchLobbyView extends JFrame {
                         getWidth(), getHeight(), this);
 
                 //기존 준비 상태에 따라 글자 표시
-                if (getText().equals("준비완료!")) {
+                if (getText().equals("준비완료")) {
 
                     int x = (getWidth() - readyIcon.getIconWidth()) / 2;
                     int y = (getHeight() - readyIcon.getIconHeight()) / 2;
@@ -247,10 +247,21 @@ public class CatchLobbyView extends JFrame {
         //이후 /PLAYERS를 수신할 때마다 updatePlayers()가 실행됨
         //화면 클래스에 대한 의존성 없애기 위함
         client.setPlayersListener(new CatchClient.PlayersListener() {
-
             @Override
             public void onPlayers(String msg) {
                 updatePlayers(msg);
+            }
+        });
+        
+        //준비 상태 변경 알림을 받으면 화면 갱신
+        client.setReadyListener(new CatchClient.ReadyListener() {
+            @Override
+            public void onReadyUpdate(String msg) {
+                updateReady(msg);
+            }
+            @Override
+            public void onGameStart() {
+                startCountdown();
             }
         });
         
@@ -261,6 +272,12 @@ public class CatchLobbyView extends JFrame {
     //서버에서 전달받은 참가자 목록 화면에 표시
     //플레이어목록에 변화가 있을때마다 전부 지우고 다시 그리는 방식
     private void updatePlayers(String msg) {
+    	cancelCountdown();
+    	//내 준비 버튼 초기화
+    	ready = false;
+    	btnReady.setText("준비완료");
+    	btnReady.repaint();
+    	
         //기존 참가자 표시 초기화
         for (int i = 0; i < 4; i++) {
             lblPlayers[i].setText("");
@@ -321,10 +338,50 @@ public class CatchLobbyView extends JFrame {
         contentPane.repaint();
     }
 
-    
+    //서버에서 받은 준비 상태를 대기실에 반영
+    private void updateReady(String msg) {
+        String[] args = msg.split(" ");
+        if (args.length != 3) {return;}
+
+        int id;
+        try {
+            id = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {return;}
+
+        if (id < 1 || id > 4) {return;}
+        if (!args[2].equals("0") && !args[2].equals("1")) {return;} //ready값 검사
+
+        boolean readyState = args[2].equals("1");
+
+        if (!readyState) {
+            cancelCountdown();
+        }
+        
+        //해당 플레이어의 준비 상태 표시
+        lblReady[id - 1].setText(
+                readyState ? "Ready!" : "Wait.."
+        );
+
+        //내 준비 상태일때 버튼도 변경
+        CatchClient client = CatchClient.getInstance();
+
+        if (id == client.getPlayerId()) {
+            ready = readyState;
+
+            btnReady.setText(
+                    ready ? "준비취소" : "준비완료"
+            );
+            btnReady.repaint();
+        }
+    }
+
     //게임시작 카운트다운
     private void startCountdown() {
-
+    	//카운트다운 중복 실행 방지
+    	if (countdownTimer != null && countdownTimer.isRunning()) {
+    	    return;
+    	}
+    	
         count = 3;
         lblCountdown.setText("" + count);
 
@@ -339,9 +396,7 @@ public class CatchLobbyView extends JFrame {
 
                 } else {
                     countdownTimer.stop();
-
-                    CatchGameView view = new CatchGameView();
-                    setVisible(false);
+                    lblCountdown.setText("");
                 }
             }
         });
@@ -366,22 +421,21 @@ public class CatchLobbyView extends JFrame {
 
             if (e.getSource() == btnReady) {
 
-                ready = !ready;
-                //서버 연결 후 lblReady[i]를 해당 플레이어 ID로변경
-                //게임시작 카운트다운 1인용으로 만들어둠, 추후 다인용으로 교체하곘습니다
-                if (ready) {
-                    btnReady.setText("준비 취소");
-                    lblReady[0].setText("Ready!");
+            	CatchClient client = CatchClient.getInstance();
+            	
+            	try {
+                    //현재 준비 상태의 반대 값을 서버에 요청
+                    if (ready) {
+                        client.sendMessage("/READY 0");
+                    } else {
+                        client.sendMessage("/READY 1");
+                    }
 
-                    startCountdown();
-
-                } else {
-                    btnReady.setText("준비완료!");
-                    lblReady[0].setText("Wait..");
-
-                    cancelCountdown();
-                }
-
+            	} catch (IOException ex) {
+                    JOptionPane.showMessageDialog(
+                            CatchLobbyView.this,
+                            "준비 상태 전송 실패" );
+            	}
             } else if (e.getSource() == btnLeave) {
 
                 cancelCountdown();

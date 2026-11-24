@@ -15,7 +15,6 @@ public class CatchClient {
     
     private int playerId = -1; //플레이어ID초기화
     private JoinListener joinListener;
-    private PlayersListener playersListener;
 
     //참가 승인 결과를 화면에 전달
     public interface JoinListener { //인터페이스
@@ -32,6 +31,7 @@ public class CatchClient {
     }
     
     //참가자 목록을 대기실에 전달
+    private PlayersListener playersListener;
     public interface PlayersListener {
         void onPlayers(String msg); ///PLAYERS수신했을 떄 실행할거
     }
@@ -39,6 +39,16 @@ public class CatchClient {
         playersListener = listener;
     }
 
+    //준비 상태 변경 알림을 대기실에 전달
+    private ReadyListener readyListener;
+    public interface ReadyListener {
+        void onReadyUpdate(String msg);
+        void onGameStart();
+    }
+    public void setReadyListener(ReadyListener listener) {
+        readyListener = listener;
+    }
+    
     //외부에서 직접 객체 생성하지 않도록 설정
     private CatchClient() {
     }
@@ -112,6 +122,28 @@ class ListenNetwork extends Thread {
                             }
                         });
                         break;
+                    case "/READY_UPDATE":
+                    	SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (readyListener != null
+                                        && socket == connectedSocket) {
+                                    readyListener.onReadyUpdate(msg);
+                                }
+                            }
+                        });
+                        break;
+                    case "/GAME_START":
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (readyListener != null
+                                        && socket == connectedSocket) {
+                                    readyListener.onGameStart();
+                                }
+                            }
+                        });
+                        break;
                     default:
                         break;
                 }
@@ -154,6 +186,7 @@ class ListenNetwork extends Thread {
         dis = null;
         dos = null;
         playersListener = null;
+        readyListener = null;
         playerId = -1;
     }
 }
