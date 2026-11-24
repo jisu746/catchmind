@@ -15,6 +15,9 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 import javax.swing.SwingConstants;
 
+import java.io.IOException;
+import javax.swing.JOptionPane;
+
 public class CatchLobbyView extends JFrame {
 
 	// --화면 단독 테스트용 (추후 삭제)--
@@ -296,11 +299,30 @@ public class CatchLobbyView extends JFrame {
             } else if (e.getSource() == btnLeave) {
 
                 cancelCountdown();
-                //username, selectedProfile전달
+                
+                CatchClient client = CatchClient.getInstance();
+                
+                try {
+                    //서버에 나가기 요청
+                    if (client.isConnected()) {
+                        client.sendMessage("/LEAVE");
+                    }
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(
+                            CatchLobbyView.this,
+                            "서버 나가기 요청 전송 실패"
+                    );  
+                } finally {
+                    //서버 연결 종료
+                    client.disconnect();
+                }
+
+                //메인 화면으로 이동
                 CatchClientMain view = new CatchClientMain();
                 view.setVisible(true);
                 dispose();
             }
+            
         }
     }
 }
