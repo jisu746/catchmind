@@ -21,7 +21,7 @@ public class CatchRankingView extends JFrame {
 
     // 서버 연결 전 화면 확인용 데이터 같은 인덱스 같은 플레이어
     private String[] names = {"지수", "보람", "민수", "수아"};
-    private int[] scores = {300, 50, 450, 200};
+    private int[] scores = {0, 0, 0, 0};
     private int[] profiles = {1, 2, 3, 4};
     private final Color textColor = new Color(80, 66, 43);
 
@@ -63,8 +63,7 @@ public class CatchRankingView extends JFrame {
         btnLeave.setToolTipText("서버 나가기");
         btnLobby.setToolTipText("대기실로 돌아가기");
 
-        // 수업에서 사용한 배열과 반복문으로 점수 내림차순 인덱스를 만든다.
-        // 동점이면 기존 참가자 순서를 유지한다.
+        //배열과 반복문으로 점수 내림차순 인덱스를 만든다
         int[] order = new int[names.length];
         for (int i = 0; i < order.length; i++) order[i] = i;
         for (int i = 1; i < order.length; i++) {
@@ -81,7 +80,13 @@ public class CatchRankingView extends JFrame {
         // JPanel 안에 자식 컴포넌트를 배치해 이미지가 글씨를 덮지 않게 한다.
         JPanel winnerPanel = imagePanel(contentPane, "ranking/winner-card.png", 42, 176);
         picture(winnerPanel, "ranking/yellow-crown.png", 119, 16);
-        JLabel winnerCat = new JLabel(loadImage("lobby-chracter" + profiles[winner] + ".png"));
+        // 순위표와 같은 이미지 묶음을 사용해야 캐릭터 번호가 일치한다.
+        ImageIcon winnerIcon = loadImage("ranking/ranking-chracter" + profiles[winner] + ".png");
+        // 도트를 유지하도록 가로·세로를 동일하게 4배 확대한다.
+        ImageIcon winnerLargeIcon = new ImageIcon(winnerIcon.getImage().getScaledInstance(
+                winnerIcon.getIconWidth() * 4, winnerIcon.getIconHeight() * 4,
+                java.awt.Image.SCALE_REPLICATE));
+        JLabel winnerCat = new JLabel(winnerLargeIcon);
         winnerCat.setBounds(77, 130, 200, 172);
         winnerPanel.add(winnerCat);
         text(winnerPanel, names[winner], 25, 304, 304, 54, 32, SwingConstants.CENTER);
